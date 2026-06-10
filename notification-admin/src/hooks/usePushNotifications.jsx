@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react';
 import { getToken, onMessage } from 'firebase/messaging';
 import { messaging } from '../firebase';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import api from '../api/axios';
 import { toast } from 'react-hot-toast';
 
 export const usePushNotifications = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [permission, setPermission] = useState(
     typeof window !== 'undefined' ? Notification.permission : 'default'
   );
@@ -32,44 +36,82 @@ export const usePushNotifications = () => {
     const unsubscribe = onMessage(messaging, (payload) => {
       console.log('Foreground notification received:', payload);
       
+      // Construct a new local recipient log record
+      const newRecord = {
+        id: payload.data?.recipient_id ? parseInt(payload.data.recipient_id) : Date.now(),
+        is_read: false,
+        created_at: new Date().toISOString(),
+        notification: {
+          title: payload.notification?.title || payload.data?.title || 'New Notification',
+          body: payload.notification?.body || payload.data?.body || '',
+          image_url: payload.notification?.image || payload.data?.image_url || null,
+          post_id: payload.data?.post_id ? parseInt(payload.data.post_id) : null,
+          sender: {
+            name: payload.data?.sender_name || 'System Broadcast'
+          }
+        }
+      };
+
+      // Dispatch event to push into state array directly
+      window.dispatchEvent(new CustomEvent('new-inbox-notification', { detail: newRecord }));
+
+      // Update unread count immediately
+      window.dispatchEvent(new Event('sync-notifications'));
+
       // Render premium custom glass toast
       toast.custom((t) => (
         <div
           className={`${
             t.visible ? 'animate-fadeIn' : 'opacity-0'
-          } max-w-md w-full bg-[#0c0f24]/95 border border-[rgba(139,92,246,0.3)] backdrop-blur-md shadow-2xl rounded-2xl pointer-events-auto flex p-4 transition-all duration-300 transform scale-100`}
+          } max-w-md w-full bg-white/95 border border-border-light backdrop-blur-md shadow-2xl rounded-2xl pointer-events-auto flex p-4 transition-all duration-300 transform scale-100 hover:shadow-glow cursor-pointer`}
+          onClick={(e) => {
+            // If they didn't click the close button, navigate to post
+            if (e.target.tagName !== 'BUTTON') {
+              toast.dismiss(t.id);
+              const postId = payload.data?.post_id;
+              if (postId) {
+                if (user?.role === 'reader') {
+                  navigate(`/feed/${postId}`);
+                } else {
+                  navigate(`/posts/${postId}`);
+                }
+              } else {
+                navigate('/inbox');
+              }
+            }
+          }}
         >
           <div className="flex-1 w-0">
             <div className="flex items-start">
               <div className="flex-shrink-0 pt-0.5">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#8b5cf6] to-[#06b6d4] flex items-center justify-center font-bold text-white text-lg shadow-[0_0_12px_rgba(13,148,136,0.4)]">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent-primary to-accent-secondary flex items-center justify-center font-bold text-white text-lg shadow-[0_0_12px_rgba(99,102,241,0.3)]">
                   🔔
                 </div>
               </div>
               <div className="ml-3 flex-1">
-                <p className="text-sm font-bold text-white font-display">
+                <p className="text-sm font-bold text-text-primary font-display">
                   {payload.notification?.title || 'New Message'}
                 </p>
-                <p className="mt-1 text-xs text-slate-300 font-sans leading-relaxed">
+                <p className="mt-1 text-xs text-text-secondary font-sans leading-relaxed">
                   {payload.notification?.body || ''}
                 </p>
               </div>
             </div>
           </div>
-          <div className="flex border-l border-white/[0.08] ml-4 pl-4 items-center">
+          <div className="flex border-l border-border-color ml-4 pl-4 items-center">
             <button
               onClick={() => toast.dismiss(t.id)}
-              className="text-xs font-bold text-[#8b5cf6] hover:text-[#a78bfa] focus:outline-none cursor-pointer tracking-wider uppercase"
+              className="text-xs font-bold text-accent-primary hover:text-accent-primary-hover focus:outline-none cursor-pointer tracking-wider uppercase"
             >
               Close
             </button>
           </div>
         </div>
-      ), { duration: 6000 });
+      ), { duration: 8000 });
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [user]);
 
   // Silent sync on login/mount
   useEffect(() => {

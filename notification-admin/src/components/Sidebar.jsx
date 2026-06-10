@@ -1,16 +1,18 @@
-import React from 'react';
+
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { 
-  LayoutDashboard, 
-  Users, 
-  UserCheck, 
-  FileText, 
-  Send, 
-  AlertTriangle, 
-  LogOut, 
+import {
+  LayoutDashboard,
+  Users,
+  UserCheck,
+  FileText,
+  Send,
+  AlertTriangle,
+  LogOut,
   Bell,
-  X
+  Smartphone,
+  X,
+  User
 } from 'lucide-react';
 
 const Sidebar = ({ isOpen, toggleSidebar }) => {
@@ -91,31 +93,42 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
       icon: AlertTriangle,
       show: isAdmin,
     },
+    {
+      name: 'Device Tokens',
+      path: '/device-tokens',
+      icon: Smartphone,
+      show: isAdmin,
+    },
+    {
+      name: 'Profile',
+      path: '/profile',
+      icon: User,
+      show: true,
+    },
   ];
 
   return (
     <>
       {/* Mobile Backdrop overlay */}
       {isOpen && (
-        <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-[45] md:hidden" 
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-[45] md:hidden"
           onClick={toggleSidebar}
         ></div>
       )}
 
-      <aside className={`w-[260px] bg-bg-glass backdrop-blur-xl border-r border-border-color flex flex-col h-screen z-50 shrink-0 transition-transform duration-300 md:translate-x-0 fixed md:static left-0 top-0 ${
-        isOpen ? 'translate-x-0' : '-translate-x-full'
-      }`}>
+      <aside className={`w-[260px] bg-bg-glass backdrop-blur-xl border-r border-border-color flex flex-col h-screen z-50 shrink-0 transition-transform duration-300 md:translate-x-0 fixed md:static left-0 top-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}>
         {/* Brand Header */}
         <div className="h-[70px] flex items-center px-6 gap-3 border-b border-border-color">
           <Bell className="text-accent-primary drop-shadow-[0_0_8px_rgba(139,92,246,0.4)]" size={24} />
           <span className="font-display text-xl font-extrabold bg-gradient-to-r from-text-primary to-accent-primary-hover bg-clip-text text-transparent tracking-tight">
             AetherNotify
           </span>
-          
+
           {/* Mobile close button */}
-          <button 
-            onClick={toggleSidebar} 
+          <button
+            onClick={toggleSidebar}
             className="ml-auto bg-none border-none text-text-secondary cursor-pointer md:hidden"
           >
             <X size={20} />
@@ -133,17 +146,16 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
                   key={item.path}
                   to={item.path}
                   onClick={() => isOpen && toggleSidebar()}
-                  className={({ isActive }) => 
-                    `flex items-center gap-3.5 px-4 py-3 text-text-secondary rounded-xl text-sm font-medium border border-transparent transition-all duration-150 hover:text-text-primary hover:bg-bg-surface-hover hover:border-border-color ${
-                      isActive ? 'text-text-primary bg-bg-glass-active border-border-glow shadow-[inset_0_0_12px_rgba(139,92,246,0.08)]' : ''
+                  className={({ isActive }) =>
+                    `flex items-center gap-3.5 px-4 py-3 text-text-secondary rounded-xl text-sm font-medium border border-transparent transition-all duration-150 hover:text-text-primary hover:bg-bg-surface-hover hover:border-border-color ${isActive ? 'text-text-primary bg-bg-glass-active border-border-glow shadow-[inset_0_0_12px_rgba(139,92,246,0.08)]' : ''
                     }`
                   }
                 >
                   {({ isActive }) => (
                     <>
-                      <Icon 
-                        size={18} 
-                        className={isActive ? 'text-accent-primary drop-shadow-[0_0_4px_rgba(139,92,246,0.4)]' : ''} 
+                      <Icon
+                        size={18}
+                        className={isActive ? 'text-accent-primary drop-shadow-[0_0_4px_rgba(139,92,246,0.4)]' : ''}
                       />
                       <span>{item.name}</span>
                     </>
@@ -169,8 +181,8 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             </div>
           </div>
 
-          <button 
-            className="flex items-center justify-center gap-2 w-full p-3 rounded-xl bg-danger/5 border border-danger/10 text-danger font-semibold text-sm cursor-pointer transition-all duration-150 hover:bg-danger hover:text-white hover:border-danger hover:shadow-[0_4px_12px_rgba(239,68,68,0.25)]" 
+          <button
+            className="flex items-center justify-center gap-2 w-full p-3 rounded-xl bg-danger/5 border border-danger/10 text-danger font-semibold text-sm cursor-pointer transition-all duration-150 hover:bg-danger hover:text-white hover:border-danger hover:shadow-[0_4px_12px_rgba(239,68,68,0.25)]"
             onClick={handleLogout}
           >
             <LogOut size={16} />

@@ -92,10 +92,11 @@ class AuthService
             }
 
             return [
-                'user'         => $user,
-                'access_token' => $this->generateAccessToken($user),
-                'token_type'   => 'Bearer',
-                'expires_in'   => config('jwt.ttl'),
+                'user'          => $user,
+                'access_token'  => $this->generateAccessToken($user),
+                'refresh_token' => $this->generateRefreshToken($user),
+                'token_type'    => 'Bearer',
+                'expires_in'    => config('jwt.ttl'),
             ];
 
         } catch (\Throwable $e) {
@@ -138,5 +139,21 @@ class AuthService
         ];
 
         return JWT::encode($payload, config('jwt.secret'), config('jwt.algo', 'HS256'));
+    }
+
+    /**
+     * Update user profile info.
+     */
+    public function updateProfile(int $userId, array $data): User
+    {
+        return $this->userRepository->update($userId, $data);
+    }
+
+    /**
+     * Update user password.
+     */
+    public function updatePassword(int $userId, string $hashedPassword): User
+    {
+        return $this->userRepository->update($userId, ['password' => $hashedPassword]);
     }
 }

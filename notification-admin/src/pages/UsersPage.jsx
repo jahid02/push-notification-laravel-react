@@ -86,7 +86,7 @@ const UsersPage = () => {
 
   // Table columns definition
   const headers = [
-    { key: 'id', label: 'ID', skeletonWidth: '20px' },
+    { key: 'id', label: '#SL', skeletonWidth: '40px', render: (_, _row, rowIndex) => <span className="text-text-muted font-medium">{(currentPage - 1) * itemsPerPage + rowIndex + 1}</span> },
     { key: 'name', label: 'Full Name', skeletonWidth: '120px', render: (val) => (
       <span className="font-semibold text-text-primary">{val}</span>
     )},

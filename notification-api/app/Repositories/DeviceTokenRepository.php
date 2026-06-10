@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Models\DeviceToken;
 use App\Repositories\Contracts\DeviceTokenRepositoryInterface;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 
 class DeviceTokenRepository implements DeviceTokenRepositoryInterface
@@ -50,6 +51,25 @@ class DeviceTokenRepository implements DeviceTokenRepositoryInterface
                           ->get();
     }
 
+    public function paginateAll(array $filters, int $perPage): LengthAwarePaginator
+    {
+        $query = DeviceToken::with('user')->latest();
+
+        if (!empty($filters['search'])) {
+            $search = '%' . $filters['search'] . '%';
+            $query->where(function ($q) use ($search) {
+                $q->where('device_name', 'like', $search)
+                  ->orWhere('platform', 'like', $search)
+                  ->orWhereHas('user', function ($uq) use ($search) {
+                      $uq->where('name', 'like', $search)
+                         ->orWhere('email', 'like', $search);
+                  });
+            });
+        }
+
+        return $query->paginate($perPage);
+    }
+
     public function delete(int $id): bool
     {
         return (bool) DeviceToken::destroy($id);
@@ -60,3 +80,4 @@ class DeviceTokenRepository implements DeviceTokenRepositoryInterface
         return (bool) DeviceToken::where('token', $token)->delete();
     }
 }
+

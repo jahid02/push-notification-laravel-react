@@ -84,6 +84,8 @@ class NotificationService
             'status'    => 'pending',
         ]);
 
+        $notification->setRelation('sender', $sender);
+
         // Dispatch the asynchronous background sending process
         \App\Jobs\SendCustomNotificationJob::dispatch($notification, $target, $userIds);
 
@@ -102,6 +104,7 @@ class NotificationService
         }
 
         $notification->update(['status' => 'processing']);
+        $notification->loadMissing('sender');
 
         $query = \App\Models\DeviceToken::query();
         if ($userIds !== null) {
@@ -148,7 +151,10 @@ class NotificationService
                         continue;
                     }
 
-                    $customData = [];
+                    $customData = [
+                        'recipient_id' => (string) $recipient->id,
+                        'sender_name' => $notification->sender ? $notification->sender->name : 'System Broadcast',
+                    ];
                     if ($notification->post_id) {
                         $customData['post_id'] = (string) $notification->post_id;
                     }
@@ -203,6 +209,8 @@ class NotificationService
             'target'    => 'subscribers',
             'status'    => 'pending',
         ]);
+
+        $notification->setRelation('sender', $post->author);
 
         $subscriberIds = $this->subscriptionRepository->getSubscriberIds($post->author_id);
 

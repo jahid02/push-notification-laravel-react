@@ -1,20 +1,58 @@
-import React, { useState } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { useAuth } from '../contexts/AuthContext';
-import { Menu, User, ShieldAlert, Bell, BellOff, BellRing, Loader2 } from 'lucide-react';
-import { usePushNotifications } from '../hooks/usePushNotifications';
-import { toast } from 'react-hot-toast';
+import { Menu, User, ShieldAlert, Bell } from 'lucide-react';
+import { usePushNotifications } from '../hooks/usePushNotifications';;
+import api from '../api/axios';
 
 const Layout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user } = useAuth();
   const location = useLocation();
-  const { permission, token, loading, requestAndRegister, unregister } = usePushNotifications();
+  const navigate = useNavigate();
+  const { permission, requestAndRegister } = usePushNotifications();
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
+
+  // Auto-request push permissions on landing if default
+  useEffect(() => {
+    if (user && permission === 'default') {
+      requestAndRegister();
+    }
+  }, [user, permission]);
+
+  // Fetch in-app unread notifications count
+  const fetchUnreadCount = async () => {
+    if (!user) return;
+    try {
+      const response = await api.get('/notifications/unread-count');
+      if (response.data && response.data.success) {
+        setUnreadCount(response.data.data.unread_count || 0);
+      }
+    } catch (err) {
+      console.error('Failed to fetch unread count:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (!user) return;
+    fetchUnreadCount();
+
+    // Check periodically
+    const interval = setInterval(fetchUnreadCount, 30000);
+
+    // Event listener to sync unread count when reading notifications
+    window.addEventListener('sync-notifications', fetchUnreadCount);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('sync-notifications', fetchUnreadCount);
+    };
+  }, [user]);
 
   // Maps path to a header title
   const getPageTitle = (pathname) => {
@@ -26,6 +64,9 @@ const Layout = () => {
     if (pathname.startsWith('/posts/') && pathname.endsWith('/edit')) return 'Edit Post';
     if (pathname === '/notifications') return 'Custom Push Dispatcher';
     if (pathname === '/failed-jobs') return 'Queue System Control';
+    if (pathname === '/device-tokens') return 'Registered Device Tokens';
+    if (pathname === '/profile') return 'My Operator Profile';
+    if (pathname === '/inbox') return 'Notification Inbox';
     return 'Administration Console';
   };
 
@@ -52,63 +93,28 @@ const Layout = () => {
           </div>
 
           <div className="flex items-center gap-4">
-            {/* Notification Status Bell */}
-            <div className="relative">
-              {loading ? (
-                <button
-                  disabled
-                  className="p-2.5 rounded-full border border-border-color bg-white/[0.03] flex items-center justify-center text-accent-primary"
-                >
-                  <Loader2 size={18} className="animate-spin" />
-                </button>
-              ) : permission === 'granted' && token ? (
-                <button
-                  onClick={() => {
-                    if (window.confirm('Do you want to unsubscribe from desktop push notifications?')) {
-                      unregister();
-                    }
-                  }}
-                  title="Notifications Subscribed (Click to unsubscribe)"
-                  className="p-2.5 rounded-full border border-accent-secondary/20 bg-accent-secondary/5 hover:bg-accent-secondary/10 transition-all duration-200 cursor-pointer flex items-center justify-center text-accent-secondary hover:text-accent-secondary-hover shadow-[0_0_12px_rgba(13,148,136,0.15)] group relative"
-                >
-                  <BellRing size={18} className="group-hover:scale-110 transition-transform duration-200" />
-                  <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-secondary opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-accent-secondary"></span>
-                  </span>
-                </button>
-              ) : permission === 'denied' ? (
-                <button
-                  onClick={() => {
-                    toast.error(
-                      'Notifications are blocked. Please click the site settings lock icon in your browser URL bar and set Notifications to "Allow".',
-                      { duration: 5000 }
-                    );
-                  }}
-                  title="Notifications Blocked. Click for instructions to reset."
-                  className="p-2.5 rounded-full border border-danger/20 bg-danger/5 hover:bg-danger/10 transition-all duration-200 cursor-pointer flex items-center justify-center text-danger hover:text-danger/90 group"
-                >
-                  <BellOff size={18} className="group-hover:scale-110 transition-transform duration-200" />
-                </button>
-              ) : (
-                <button
-                  onClick={requestAndRegister}
-                  title="Enable Push Notifications"
-                  className="p-2.5 rounded-full border border-border-color bg-white/[0.03] hover:bg-bg-surface-hover hover:border-border-light transition-all duration-200 cursor-pointer flex items-center justify-center text-text-muted hover:text-text-primary hover:shadow-glow group relative animate-pulse"
-                >
-                  <Bell size={18} className="group-hover:scale-110 transition-transform duration-200" />
-                  <span className="absolute top-1 right-1 flex h-1.5 w-1.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-primary opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-accent-primary"></span>
-                  </span>
-                </button>
+            {/* Notification Inbox Bell */}
+            <button
+              onClick={() => navigate('/inbox')}
+              title="View Notification Inbox"
+              className="p-2.5 rounded-full border border-border-color bg-white/[0.03] hover:bg-bg-surface-hover hover:border-border-light transition-all duration-200 cursor-pointer flex items-center justify-center text-text-muted hover:text-text-primary hover:shadow-glow relative"
+            >
+              <Bell size={18} />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold text-white shadow-sm animate-pulse">
+                  {unreadCount}
+                </span>
               )}
-            </div>
+            </button>
 
             {/* User Profile Widget */}
             <div className="flex items-center gap-3 p-1.5 md:p-2 px-3 rounded-full bg-white/[0.03] border border-border-color">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent-primary to-accent-secondary flex items-center justify-center font-bold text-white text-sm font-display">
-                {user?.name ? user.name.charAt(0).toUpperCase() : <User size={16} />}
+              <div className="w-8 h-8 rounded-full overflow-hidden border border-border-color flex items-center justify-center bg-gradient-to-br from-accent-primary to-accent-secondary font-bold text-white text-sm font-display shrink-0">
+                {user?.avatar ? (
+                  <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                ) : (
+                  user?.name ? user.name.charAt(0).toUpperCase() : <User size={16} />
+                )}
               </div>
               <div className="flex flex-col hidden sm:flex">
                 <span className="text-sm font-semibold text-text-primary leading-tight">

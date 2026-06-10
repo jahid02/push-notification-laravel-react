@@ -3,6 +3,7 @@
 namespace App\Repositories\Contracts;
 
 use App\Models\DeviceToken;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 
 interface DeviceTokenRepositoryInterface
@@ -42,6 +43,13 @@ interface DeviceTokenRepositoryInterface
     public function getTokensForUsers(array $userIds): Collection;
 
     /**
+     * Paginate all device tokens with optional search. Admin use.
+     *
+     * @param  array<string, mixed>  $filters  Supports 'search' key
+     */
+    public function paginateAll(array $filters, int $perPage): LengthAwarePaginator;
+
+    /**
      * Delete a device token by its ID.
      */
     public function delete(int $id): bool;
@@ -52,3 +60,4 @@ interface DeviceTokenRepositoryInterface
      */
     public function deleteByToken(string $token): bool;
 }
+

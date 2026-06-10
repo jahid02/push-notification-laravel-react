@@ -76,24 +76,44 @@ const SubscribersPage = () => {
   }, [selectedAuthorId, currentPage]);
 
   const headers = [
-    { key: 'id', label: 'Reader ID', skeletonWidth: '30px' },
+    {
+      key: 'sl',
+      label: '#SL',
+      skeletonWidth: '30px',
+      render: (_, _row, rowIndex) => (
+        <span className="text-text-muted font-medium">
+          {(currentPage - 1) * itemsPerPage + rowIndex + 1}
+        </span>
+      )
+    },
     { 
-      key: 'name', 
+      key: 'reader_name',
       label: 'Reader Name', 
       skeletonWidth: '150px',
-      render: (val) => <span className="font-semibold text-text-primary">{val}</span>
+      render: (val) => <span className="font-semibold text-text-primary">{val || '—'}</span>
     },
-    { key: 'email', label: 'Email Address', skeletonWidth: '180px' },
+    {
+      key: 'reader_email',
+      label: 'Email Address',
+      skeletonWidth: '180px',
+      render: (val) => <span className="text-text-secondary">{val || '—'}</span>
+    },
     { 
-      key: 'pivot', 
+      key: 'subscribed_at', 
       label: 'Subscription Date', 
-      skeletonWidth: '100px',
-      render: (pivot, row) => {
-        const dateStr = pivot?.created_at || row.created_at;
-        return dateStr ? new Date(dateStr).toLocaleString() : 'N/A';
-      }
+      skeletonWidth: '140px',
+      render: (val) => val ? new Date(val).toLocaleString() : 'N/A'
     }
   ];
+
+  // Flatten subscription rows: extract reader info into top-level keys for DataTable
+  const tableData = subscribers.map(sub => ({
+    id:           sub.id,
+    sl:           null,                        // unused — #SL uses rowIndex
+    reader_name:  sub.reader?.name  ?? '—',
+    reader_email: sub.reader?.email ?? '—',
+    subscribed_at: sub.created_at,
+  }));
 
   const authorFilterToolbar = isAdmin && authors.length > 0 ? (
     <div className="flex items-center gap-3">
@@ -124,7 +144,7 @@ const SubscribersPage = () => {
 
       <DataTable
         headers={headers}
-        data={subscribers}
+        data={tableData}
         loading={loading}
         currentPage={currentPage}
         totalPages={totalPages}

@@ -12,6 +12,7 @@ class NotificationRecipient extends Model
         'user_id',
         'device_token_id',
         'status',
+        'is_read',
         'fcm_message_id',
         'error_message',
         'sent_at',
@@ -20,6 +21,7 @@ class NotificationRecipient extends Model
     protected function casts(): array
     {
         return [
+            'is_read' => 'boolean',
             'sent_at' => 'datetime',
         ];
     }

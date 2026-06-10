@@ -23,6 +23,8 @@ import FailedJobsPage from './pages/FailedJobsPage';
 import AuthorsPage from './pages/AuthorsPage';
 import FeedPage from './pages/FeedPage';
 import InboxPage from './pages/InboxPage';
+import DeviceTokensPage from './pages/DeviceTokensPage';
+import ProfilePage from './pages/ProfilePage';
 
 function App() {
   return (
@@ -70,6 +72,14 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="device-tokens"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <DeviceTokensPage />
+                </ProtectedRoute>
+              }
+            />
 
             {/* ── Author Only ── */}
             <Route
@@ -93,7 +103,7 @@ function App() {
             <Route
               path="posts/create"
               element={
-                <ProtectedRoute allowedRoles={['author', 'admin']}>
+                <ProtectedRoute allowedRoles={['author']}>
                   <CreatePostPage />
                 </ProtectedRoute>
               }
@@ -101,7 +111,7 @@ function App() {
             <Route
               path="posts/:id/edit"
               element={
-                <ProtectedRoute allowedRoles={['author', 'admin']}>
+                <ProtectedRoute allowedRoles={['author']}>
                   <EditPostPage />
                 </ProtectedRoute>
               }
@@ -144,8 +154,16 @@ function App() {
             <Route
               path="inbox"
               element={
-                <ProtectedRoute allowedRoles={['reader']}>
+                <ProtectedRoute allowedRoles={['admin', 'author', 'reader']}>
                   <InboxPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="profile"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'author', 'reader']}>
+                  <ProfilePage />
                 </ProtectedRoute>
               }
             />
@@ -162,16 +180,28 @@ function App() {
         toastOptions={{
           className: 'glass-toast',
           style: {
-            background: 'rgba(12, 15, 36, 0.95)',
+            background: 'rgba(255, 255, 255, 0.98)',
             color: 'var(--text-primary)',
-            border: '1px solid var(--border-glow)',
+            border: '1px solid var(--border-light)',
             backdropFilter: 'blur(8px)',
             WebkitBackdropFilter: 'blur(8px)',
             fontFamily: 'var(--font-sans)',
             fontSize: '0.875rem',
+            boxShadow: 'var(--shadow-lg)',
             borderRadius: 'var(--radius-md)',
-            boxShadow: 'var(--shadow-md)',
-            padding: '12px 16px',
+            padding: '12px 20px',
+          },
+          success: {
+            iconTheme: {
+              primary: 'var(--color-success)',
+              secondary: '#ffffff',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: 'var(--color-danger)',
+              secondary: '#ffffff',
+            },
           },
         }}
       />

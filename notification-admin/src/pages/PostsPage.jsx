@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../api/axios';
@@ -61,7 +61,16 @@ const PostsPage = () => {
   const isAdmin = user?.role === 'admin';
 
   const headers = [
-    { key: 'id', label: 'ID', skeletonWidth: '20px' },
+    {
+      key: 'id',
+      label: '#SL',
+      skeletonWidth: '40px',
+      render: (_, _row, rowIndex) => (
+        <span className="text-text-muted font-medium">
+          {(currentPage - 1) * itemsPerPage + rowIndex + 1}
+        </span>
+      )
+    },
     {
       key: 'title',
       label: 'Post Title',
@@ -83,11 +92,10 @@ const PostsPage = () => {
       skeletonWidth: '70px',
       align: 'center',
       render: (val) => (
-        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${
-          val === 'restricted'
-            ? 'bg-danger/10 text-danger border-danger/20'
-            : 'bg-success/10 text-success border-success/20'
-        }`}>
+        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${val === 'restricted'
+          ? 'bg-danger/10 text-danger border-danger/20'
+          : 'bg-success/10 text-success border-success/20'
+          }`}>
           {val === 'restricted' && <ShieldOff size={10} />}
           {val || 'active'}
         </span>
@@ -124,16 +132,12 @@ const PostsPage = () => {
       align: 'right',
       skeletonWidth: '80px',
       render: (_, row) => {
-        const canEdit   = isAdmin || row.author_id === user?.id;
-        const canDelete = isAdmin || row.author_id === user?.id;
-
-        if (!canEdit && !canDelete) {
-          return <span className="text-text-muted text-xs font-medium">Restricted</span>;
-        }
+        const canEdit = !isAdmin && row.author_id === user?.id;
+        const canDelete = !isAdmin && row.author_id === user?.id;
 
         return (
           <div className="flex items-center gap-1.5 justify-end">
-            {/* Admin: View detail page */}
+            {/* Admin: View detail page (restrict/lift) */}
             {isAdmin && (
               <button
                 className="inline-flex items-center justify-center p-2 rounded-lg bg-accent-primary/10 text-accent-primary border border-accent-primary/20 hover:bg-accent-primary hover:text-white hover:border-accent-primary transition-colors cursor-pointer"
@@ -143,7 +147,7 @@ const PostsPage = () => {
                 <Eye size={14} />
               </button>
             )}
-            {/* Edit button */}
+            {/* Edit button — authors own posts only */}
             {canEdit && (
               <button
                 className="inline-flex items-center justify-center p-2 rounded-lg bg-warning/10 text-warning border border-warning/20 hover:bg-warning hover:text-white hover:border-warning transition-colors cursor-pointer"
@@ -153,7 +157,7 @@ const PostsPage = () => {
                 <Pencil size={14} />
               </button>
             )}
-            {/* Delete button */}
+            {/* Delete button — authors own posts only */}
             {canDelete && (
               <button
                 className="inline-flex items-center justify-center p-2 rounded-lg bg-danger/10 text-danger border border-danger/20 hover:bg-danger hover:text-white hover:border-danger transition-colors cursor-pointer"
@@ -163,13 +167,17 @@ const PostsPage = () => {
                 <Trash2 size={14} />
               </button>
             )}
+            {/* Author viewing another author's post */}
+            {!isAdmin && row.author_id !== user?.id && (
+              <span className="text-text-muted text-xs font-medium">Read-Only</span>
+            )}
           </div>
         );
       }
     }
   ];
 
-  const toolbarActions = (
+  const toolbarActions = !isAdmin ? (
     <button
       className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-accent-primary to-accent-primary-hover text-white font-semibold text-sm rounded-xl hover:-translate-y-0.5 hover:shadow-lg focus:outline-none transition-all cursor-pointer"
       onClick={() => navigate('/posts/create')}
@@ -177,7 +185,7 @@ const PostsPage = () => {
       <Plus size={16} />
       <span>Create New Post</span>
     </button>
-  );
+  ) : null;
 
   return (
     <div>

@@ -6,6 +6,7 @@ use App\Services\AuthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
@@ -98,6 +99,74 @@ class AuthController extends Controller
             'data'    => [
                 'user' => $user,
             ],
+        ]);
+    }
+
+    /**
+     * Update authenticated user profile.
+     */
+    public function updateProfile(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $data = $request->validate([
+            'name'   => 'required|string|max:255',
+            'bio'    => 'nullable|string|max:1000',
+            'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        if ($request->hasFile('avatar')) {
+            $file = $request->file('avatar');
+            $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            
+            // Ensure directory exists
+            $dir = public_path('uploads/avatars');
+            if (!file_exists($dir)) {
+                mkdir($dir, 0755, true);
+            }
+            
+            $file->move($dir, $filename);
+            $data['avatar'] = url('uploads/avatars/' . $filename);
+        }
+
+        $updatedUser = $this->authService->updateProfile($user->id, $data);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Profile updated successfully.',
+            'data'    => [
+                'user' => $updatedUser,
+            ],
+        ]);
+    }
+
+    /**
+     * Update authenticated user password.
+     */
+    public function updatePassword(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $data = $request->validate([
+            'current_password' => 'required|string',
+            'password'         => 'required|string|min:6|confirmed',
+        ]);
+
+        if (!Hash::check($data['current_password'], $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'The provided current password is incorrect.',
+                'errors'  => [
+                    'current_password' => ['The provided current password is incorrect.']
+                ]
+            ], 422);
+        }
+
+        $this->authService->updatePassword($user->id, Hash::make($data['password']));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Password updated successfully.',
         ]);
     }
 }

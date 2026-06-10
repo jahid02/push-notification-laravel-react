@@ -40,6 +40,7 @@ class SendPostNotificationJob implements ShouldQueue
      */
     public function handle(NotificationService $notificationService): void
     {
+        $this->post->loadMissing('author');
         // Delegate notification creation and FCM sending to the service layer
         $notificationService->dispatchPostNotification($this->post);
     }

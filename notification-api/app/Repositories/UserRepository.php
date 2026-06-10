@@ -31,6 +31,14 @@ class UserRepository implements UserRepositoryInterface
         return $user->fresh();
     }
 
+    public function update(int $userId, array $data): User
+    {
+        $user = User::findOrFail($userId);
+        $user->update($data);
+
+        return $user->fresh();
+    }
+
     public function paginate(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
         $query = User::query()->withCount('subscribers')->latest();

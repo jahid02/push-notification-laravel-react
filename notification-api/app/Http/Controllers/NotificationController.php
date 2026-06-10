@@ -95,4 +95,38 @@ class NotificationController extends Controller
             'data'    => $inbox,
         ]);
     }
+
+    /**
+     * Get the count of unread notifications for the authenticated user.
+     */
+    public function unreadCount(Request $request): JsonResponse
+    {
+        $count = \App\Models\NotificationRecipient::where('user_id', $request->user()->id)
+            ->where('is_read', false)
+            ->count();
+
+        return response()->json([
+            'success' => true,
+            'data'    => [
+                'unread_count' => $count,
+            ],
+        ]);
+    }
+
+    /**
+     * Mark a specific notification recipient record as read.
+     */
+    public function markAsRead(Request $request, int $id): JsonResponse
+    {
+        $recipient = \App\Models\NotificationRecipient::where('id', $id)
+            ->where('user_id', $request->user()->id)
+            ->firstOrFail();
+
+        $recipient->update(['is_read' => true]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Notification marked as read.',
+        ]);
+    }
 }

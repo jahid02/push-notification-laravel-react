@@ -22,8 +22,8 @@ const EditPostPage = () => {
     height: 400,
     theme: 'default',
     style: {
-      background: 'rgba(255,255,255,0.02)',
-      color: '#e2e8f0',
+      background: '#ffffff',
+      color: '#000000',
     },
     toolbar: true,
     toolbarSticky: false,

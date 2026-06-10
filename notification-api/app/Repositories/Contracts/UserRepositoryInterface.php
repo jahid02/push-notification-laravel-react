@@ -32,6 +32,13 @@ interface UserRepositoryInterface
     public function updateRole(int $userId, string $role): User;
 
     /**
+     * Update an existing user.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public function update(int $userId, array $data): User;
+
+    /**
      * Return a paginated list of all users, with optional filters.
      *
      * @param  array<string, mixed>  $filters  e.g. ['role' => 'author', 'search' => 'john']

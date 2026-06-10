@@ -28,6 +28,8 @@ Route::middleware('jwt.auth')->group(function () {
     
     // Auth Profile
     Route::get('auth/me', [AuthController::class, 'me']);
+    Route::post('auth/profile', [AuthController::class, 'updateProfile']);
+    Route::post('auth/password', [AuthController::class, 'updatePassword']);
     
     // Device Tokens (FCM Registration)
     Route::post('device-tokens', [DeviceTokenController::class, 'store']);
@@ -45,6 +47,8 @@ Route::middleware('jwt.auth')->group(function () {
 
     // Received Notification Inbox (accessible by anyone authenticated, including readers)
     Route::get('notifications/inbox', [NotificationController::class, 'inbox']);
+    Route::get('notifications/unread-count', [NotificationController::class, 'unreadCount']);
+    Route::post('notifications/recipients/{id}/read', [NotificationController::class, 'markAsRead']);
 
     // ─── Reader-specific Actions (Role: reader) ──────────────────────────
     Route::middleware('role:reader')->group(function () {
@@ -54,16 +58,25 @@ Route::middleware('jwt.auth')->group(function () {
         Route::get('subscriptions/status/{authorId}', [SubscriptionController::class, 'status']);
     });
 
-    // ─── Content and Dispatch (Role: author, admin) ─────────────────────────
+    // ─── Content and Dispatch (Role: author only) ────────────────────────────
+    Route::middleware('role:author')->group(function () {
+        // Posts write operations — authors only (create, update, delete)
+        Route::post('posts', [PostController::class, 'store']);
+        Route::put('posts/{post}', [PostController::class, 'update']);
+        Route::patch('posts/{post}', [PostController::class, 'update']);
+        Route::delete('posts/{post}', [PostController::class, 'destroy']);
+    });
+
+    // ─── Shared Staff Routes (Role: author OR admin) ──────────────────────────
     Route::middleware('role:author,admin')->group(function () {
-        // Posts management
-        Route::apiResource('posts', PostController::class);
-        
-        // Notifications & FCM logs (read-only for authors)
+        // Posts read — both roles can list posts (admin sees all, author sees own via service)
+        Route::get('posts', [PostController::class, 'index']);
+
+        // Notifications & FCM dispatch logs
         Route::get('notifications', [NotificationController::class, 'index']);
         Route::get('notifications/{id}', [NotificationController::class, 'show']);
 
-        // Subscribers list lookup for authors
+        // Subscribers list lookup — authors view their own, admin can view any channel
         Route::get('users/{authorId}/subscribers', [SubscriptionController::class, 'subscribers']);
 
         // User Directory (Search & Select)
@@ -79,9 +92,13 @@ Route::middleware('jwt.auth')->group(function () {
         // Post restriction management — admin only
         Route::post('posts/{id}/restrict', [PostController::class, 'restrict']);
 
-        // User promotion/demotion/deletion
+        // User role management & deletion — admin only
         Route::put('users/{id}/role', [UserController::class, 'updateRole']);
         Route::delete('users/{id}', [UserController::class, 'destroy']);
+
+        // Device token management — list and remove
+        Route::get('device-tokens', [DeviceTokenController::class, 'index']);
+        Route::delete('device-tokens/{id}', [DeviceTokenController::class, 'destroyById']);
 
         // Queue & failed jobs control
         Route::post('failed-jobs/retry-all', [FailedJobController::class, 'retryAll']);

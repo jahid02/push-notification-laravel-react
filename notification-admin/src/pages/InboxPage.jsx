@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { Bell, ChevronLeft, ChevronRight, Inbox, Calendar, ArrowRight, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useAuth } from '../contexts/AuthContext';
 
 const InboxPage = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -43,13 +45,45 @@ const InboxPage = () => {
     fetchNotifications();
   }, [currentPage]);
 
-  const handleNotificationClick = (recipientRecord) => {
-    const notification = recipientRecord.notification;
-    if (notification && notification.post_id) {
-      // Navigate directly to the post detail page
-      navigate(`/feed/${notification.post_id}`);
+  useEffect(() => {
+    const handleNewNotification = (e) => {
+      const newRecord = e.detail;
+      // Prepend the new notification directly into the state array
+      setNotifications((prev) => [newRecord, ...prev]);
+    };
+    window.addEventListener('new-inbox-notification', handleNewNotification);
+    return () => {
+      window.removeEventListener('new-inbox-notification', handleNewNotification);
+    };
+  }, []);
+
+  const handleNotificationClick = async (recipientRecord) => {
+    const notification = recipientRecord.notification || {};
+    
+    // Mark as read in backend and state if currently unread
+    if (!recipientRecord.is_read) {
+      try {
+        await api.post(`/notifications/recipients/${recipientRecord.id}/read`);
+        // Update local state instantly
+        setNotifications(prev =>
+          prev.map(n => (n.id === recipientRecord.id ? { ...n, is_read: true } : n))
+        );
+        // Sync header badge
+        window.dispatchEvent(new Event('sync-notifications'));
+      } catch (err) {
+        console.error('Failed to mark notification as read:', err);
+      }
+    }
+
+    if (notification.post_id) {
+      // Navigate based on user role
+      if (user?.role === 'reader') {
+        navigate(`/feed/${notification.post_id}`);
+      } else {
+        navigate(`/posts/${notification.post_id}`);
+      }
     } else {
-      toast.success('System broadcast read.');
+      toast.success(notification.title || 'System broadcast read.');
     }
   };
 
@@ -125,15 +159,16 @@ const InboxPage = () => {
             const notification = record.notification || {};
             const senderName = notification.sender?.name || 'System Broadcast';
             const hasPost = !!notification.post_id;
+            const isUnread = !record.is_read;
             
             return (
               <div
                 key={record.id}
                 onClick={() => handleNotificationClick(record)}
-                className={`p-5 flex items-start gap-4 transition-all duration-150 cursor-pointer ${
-                  hasPost 
-                    ? 'hover:bg-bg-surface-hover/80 hover:shadow-[inset_3px_0_0_0_var(--accent-primary)]' 
-                    : 'hover:bg-bg-surface-hover/50'
+                className={`p-5 flex items-start gap-4 transition-all duration-150 cursor-pointer relative ${
+                  isUnread 
+                    ? 'bg-accent-primary-glow/5 border-l-4 border-accent-primary' 
+                    : 'hover:bg-bg-surface-hover/85'
                 }`}
               >
                 {/* Sender Avatar */}
@@ -144,9 +179,14 @@ const InboxPage = () => {
                 {/* Notification Details */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-4">
-                    <span className="font-bold text-sm text-text-primary truncate">
-                      {notification.title}
-                    </span>
+                    <div className="flex items-center gap-2 min-w-0">
+                      {isUnread && (
+                        <span className="w-2 h-2 rounded-full bg-accent-primary shrink-0 animate-pulse" title="Unread" />
+                      )}
+                      <span className={`text-sm truncate ${isUnread ? 'font-extrabold text-text-primary' : 'font-medium text-text-secondary'}`}>
+                        {notification.title}
+                      </span>
+                    </div>
                     <span className="text-[10px] text-text-muted font-medium shrink-0 flex items-center gap-1">
                       <Calendar size={11} />
                       {new Date(record.created_at || record.sent_at).toLocaleString()}
